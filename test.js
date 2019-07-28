@@ -1,0 +1,1 @@
+for(i=0;i<20;i++){window.scrollTo(0,document.body.scrollHeight);}
