@@ -30,6 +30,6 @@ api_url = "https://www.zhihu.com/api/v4/questions/333741760/answers?include=data
 
 scrapy框架图及解析：https://docs.scrapy.org/en/latest/topics/architecture.html
 
-![](https://scrapy-chs.readthedocs.io/zh_CN/0.24/_images/scrapy_architecture.png)
+![](https://docs.scrapy.org/en/latest/_images/scrapy_architecture_02.png)
 
 
