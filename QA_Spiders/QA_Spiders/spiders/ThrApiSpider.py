@@ -7,33 +7,62 @@ more： 这个spider可以直接运行即可
 """
 
 import logging, requests, json
+from time import sleep
+
 import scrapy
 
-start_urls = "https://www.zhihu.com/api/v4/questions/{}/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed,annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content,editable_content,voteup_count,reshipment_settings,comment_permission,created_time,updated_time,review_info,relevant_info,question,excerpt,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,is_labeled,is_recognized,paid_info,paid_info_content;data[*].mark_infos[*].url;data[*].author.follower_count,badge[*].topics&limit={}&offset={}&platform=desktop&sort_by=default"
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+start_url = "https://www.zhihu.com/api/v4/questions/{q_i}/answers?include=data[*].is_normal,admin_closed_comment,reward_info,is_collapsed,annotation_action,annotation_detail,collapse_reason,is_sticky,collapsed_by,suggest_edit,comment_count,can_comment,content,editable_content,voteup_count,reshipment_settings,comment_permission,created_time,updated_time,review_info,relevant_info,question,excerpt,relationship.is_authorized,is_author,voting,is_thanked,is_nothelp,is_labeled,is_recognized,paid_info,paid_info_content;data[*].mark_infos[*].url;data[*].author.follower_count,badge[*].topics&limit={limit}&offset={offset}&platform=desktop&sort_by=default"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36"
 }
 
 
-def get_answer_num(url, q_id, limit, offset):
-    response = requests.get(url.format(q_id, limit, offset), headers=headers)
-    response_text = eval(response.text)
+def get_answer_num(url, q_id, _limit, offset):
+    response = requests.get(url.format(q_i=q_id, limit=_limit, offset=offset), headers=headers)
 
-    answer_num = response_text["paging"]["totals"]
+    logger.info("init url: {}".format(url.format(q_i=q_id, limit=_limit, offset=offset)))
+    print(response.status_code)
+    logger.info("response status code {}".format(response.status_code))
+    if response.status_code == 200:
+        # Attention: 一开始通过eval来将string类型的文本加载成字典，但是在这里不知道为什么不可以，报错如下：
+        # Error：NameError: name 'false' is not defined
+        # Solved：saw yet another problem today pointed out by SilentGhost: eval doesn't handle true -> True, false -> False, null -> None correctly.
+        # Solved：Kiv -- https://stackoverflow.com/questions/1083250/running-json-through-pythons-eval
+        response_text = json.loads(response.text)
+        logger.info("response type ".format(type(response_text)))
+        answer_num = response_text["paging"]["totals"]
 
-    print(response_text)
-
-    with open("../../data/result.json", 'w+', encoding='utf-8') as f:
-        json.dump(response_text, f)
-
-    logging.info("answer number: {}".format(answer_num))
+    logger.info("the answer number of this question: {answer_num}".format(answer_num=answer_num))
     return answer_num
 
 
-def crawl_answer(url, q_id, limit, offset):
-    response = requests.get(url.format(q_id, limit, offset), headers=headers)
-    response_text = eval(response.text)
+def crawl_answer(url, q_id, _limit, a_number):
+    """
+    :param url: 这个是构造的api_url
+    :param q_id: 这个是问题的id号
+    :param _limit: 每个api_url每一次请求的个数
+    :param a_number: 总共的回答数量
+    :return:
+    """
+
+    answer_file = open("../../data/result.json", 'a+', encoding='utf-8')
+
+    # 在python中 // 表示整除
+    for index in range(a_number // _limit + 1):
+        offset = index * _limit
+        try:
+            response = requests.get(url.format(q_i=q_id, offset=offset, limit=_limit), headers=headers)
+            logger.info("crawl page is {l1},the url is {u}".format(l1=_limit, u=url))
+
+            answer_file.write(response.text)
+            answer_file.write("\n")
+        except Exception as e:
+            logger.exception("api url response exception is ".format(e))
+        sleep(2)
 
 
 def to_mongo(result_dict):
@@ -44,8 +73,9 @@ if __name__ == "__main__":
     question_id = "333741760"
     limit = 5
     init_offset = 0
-    get_answer_num(start_urls, question_id, limit, init_offset)
+    answer_num = get_answer_num(start_url, question_id, limit, init_offset)
+    crawl_answer(start_url, question_id, limit, answer_num)
 
-
-# TODO: 现在通过这个api确实可以获得知乎上某个问题下的数据，考虑到每一个请求下都有下一个请求api，是否需要通过这个提取，还是说通过直接加offset的方式
+# Solved: 现在通过这个api确实可以获得知乎上某个问题下的数据，考虑到每一个请求下都有下一个请求api，是否需要通过这个提取，还是说通过直接加offset的方式
 # todo: 除此之外，想要通过这次的知乎api服务，把docker使用一次，尽量把这种方式能够作为一个服务提供出去。数据库使用可以使用MongoDB的方式直接进行存储，但具体的存储方式还要梳理一下。
+# ToDo: 添加代理
