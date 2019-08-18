@@ -11,6 +11,8 @@ from time import sleep
 
 import scrapy
 
+from QA_Spiders.QA_Spiders.ToMongoDB import ToMongoDB
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ def get_answer_num(url, q_id, _limit, offset):
     response = requests.get(url.format(q_i=q_id, limit=_limit, offset=offset), headers=headers)
 
     logger.info("init url: {}".format(url.format(q_i=q_id, limit=_limit, offset=offset)))
-    print(response.status_code)
+
     logger.info("response status code {}".format(response.status_code))
     if response.status_code == 200:
         # Attention: 一开始通过eval来将string类型的文本加载成字典，但是在这里不知道为什么不可以，报错如下：
@@ -40,8 +42,9 @@ def get_answer_num(url, q_id, _limit, offset):
     return answer_num
 
 
-def crawl_answer(url, q_id, _limit, a_number):
+def crawl_answer(url, q_id, _limit, a_number, client):
     """
+    :param client: mongodb client instance
     :param url: 这个是构造的api_url
     :param q_id: 这个是问题的id号
     :param _limit: 每个api_url每一次请求的个数
@@ -56,26 +59,38 @@ def crawl_answer(url, q_id, _limit, a_number):
         offset = index * _limit
         try:
             response = requests.get(url.format(q_i=q_id, offset=offset, limit=_limit), headers=headers)
-            logger.info("crawl page is {l1},the url is {u}".format(l1=_limit, u=url))
+            logger.info("crawl page is {off},the url is {u}".format(off=offset, u=url))
+            response_text = json.loads(response.text)
+            res_data = response_text["data"]
 
-            answer_file.write(response.text)
-            answer_file.write("\n")
+            # write every answer item to mongo database
+            for a_item in res_data:
+                try:
+                    assert type(a_item) == dict
+                except AssertionError as e:
+                    logger.exception(e)
+                    # dict(a_item)
+                client.process(a_item)
+
+            # 这里两句话是把请求得到的数据存到文件中
+            # answer_file.write(response.text)
+            # answer_file.write("\n")
+
         except Exception as e:
             logger.exception("api url response exception is ".format(e))
         sleep(2)
 
 
-def to_mongo(result_dict):
-    pass
-
-
 if __name__ == "__main__":
-    question_id = "333741760"
+    question_id = "332943436"
     limit = 5
     init_offset = 0
     answer_num = get_answer_num(start_url, question_id, limit, init_offset)
-    crawl_answer(start_url, question_id, limit, answer_num)
+
+    MonClient = ToMongoDB()
+    crawl_answer(start_url, question_id, limit, answer_num, MonClient)
 
 # Solved: 现在通过这个api确实可以获得知乎上某个问题下的数据，考虑到每一个请求下都有下一个请求api，是否需要通过这个提取，还是说通过直接加offset的方式
 # todo: 除此之外，想要通过这次的知乎api服务，把docker使用一次，尽量把这种方式能够作为一个服务提供出去。数据库使用可以使用MongoDB的方式直接进行存储，但具体的存储方式还要梳理一下。
-# ToDo: 添加代理
+# ToDo: 添加代理，还有将日志写到文件中去
+
