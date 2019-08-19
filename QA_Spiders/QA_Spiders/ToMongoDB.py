@@ -1,7 +1,7 @@
 """
 author： flowerlake
 time： 2019-08-17
-description： mongoDB的连接测试
+description： mongoDB的连接，持久化存储
 """
 import datetime
 
