@@ -33,3 +33,7 @@ scrapy框架图及解析：https://docs.scrapy.org/en/latest/topics/architecture
 ![](https://docs.scrapy.org/en/latest/_images/scrapy_architecture_02.png)
 
 
+#### 存储框架及api测试
+该项目最终需要提供一个api，以供他人调用。
+
+
