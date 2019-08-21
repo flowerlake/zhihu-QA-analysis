@@ -78,12 +78,12 @@ def crawl_answer(url, q_id, _limit, a_number, client):
 
         except Exception as e:
             logger.exception("api url response exception is ".format(e))
-        sleep(2)
+        sleep(3)
 
 
 if __name__ == "__main__":
-    question_id = "332943436"
-    limit = 5
+    question_id = "31430452"
+    limit = 20
     init_offset = 0
     answer_num = get_answer_num(start_url, question_id, limit, init_offset)
 

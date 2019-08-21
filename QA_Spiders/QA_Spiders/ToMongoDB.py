@@ -21,7 +21,7 @@ class ToMongoDB():
 
     def process(self,item):
         # 如果要修改 Zhihu_QA 中的collection，要在这里修改一下collection的名称
-        coll = self.db.problem_id_332943436
+        coll = self.db.problem_id_31430452
         try:
             insert_id = coll.insert_one(item).inserted_id
             answer_id = item["id"]
