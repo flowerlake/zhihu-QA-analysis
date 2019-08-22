@@ -28,20 +28,23 @@ class GetFromDB():
         try:
             search_item = coll.find()
             for item in search_item:
-                all_content.append({item["author"]["name"]: item["content"]})
+                # all_content.append({item["author"]["name"]: item["content"]})
 
                 process_string = re.sub("<.*?>","",item["content"])
                 process_string = re.sub("\n", "", process_string)
                 content_file.write(process_string + "\n")
+                all_content.append(process_string)
             logger.info("from {0} search success, search result type: {1}".format(coll,type(search_item)))
-            with open("data/analysis_text.json", "w+", encoding="utf-8") as f:
-                json.dump(obj=all_content, fp=f)
+            # with open("data/analysis_text.json", "w+", encoding="utf-8") as f:
+            #     json.dump(obj=all_content, fp=f)
         except Exception as e:
             logger.info(e)
 
         content_file.close()
 
+        return all_content
+
 
 if __name__ == "__main__":
     test = GetFromDB()
-    test.get_content()
+    answers = test.get_content()

@@ -83,6 +83,7 @@ def crawl_answer(url, q_id, _limit, a_number, client):
 
 if __name__ == "__main__":
     question_id = "31430452"
+    # limit是指知乎api一次请求回答的数据，范围是0~20
     limit = 20
     init_offset = 0
     answer_num = get_answer_num(start_url, question_id, limit, init_offset)
